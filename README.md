@@ -1,2 +1,2 @@
-# TaskMaster
-A glorified task handing system.
+# ChatterBox
+An app to chat.. with anyone? everyone? 
