@@ -67,8 +67,8 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = 'chatterbox_django_app.wsgi.application'
-
+# WSGI_APPLICATION = 'chatterbox_django_app.wsgi.application'
+ASGI_APPLICATION = "chatterbox_django_app.asgi.application"
 
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
@@ -80,6 +80,15 @@ DATABASES = {
     }
 }
 
+# Django channels Redis configuration
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {
+            "hosts": [("redis", 6379)],  # service name in docker-compose
+        },
+    },
+}
 
 # Password validation
 # https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators

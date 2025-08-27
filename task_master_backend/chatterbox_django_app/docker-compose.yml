@@ -1,13 +1,25 @@
 services:
- django-web:
-   build: .
-   container_name: django-docker
-   ports:
-     - "8000:8000"
-   environment:
-     SECRET_KEY: ${DJANGO_SECRET_KEY}
-     DEBUG: ${DEBUG}
-     DJANGO_LOGLEVEL: ${DJANGO_LOGLEVEL}
-     DJANGO_ALLOWED_HOSTS: ${DJANGO_ALLOWED_HOSTS}
-   env_file:
-     - .env
+  redis:
+    image: redis:8.2.1-alpine
+    restart: always
+    ports:
+      - 6379:6379
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "3"
+  django-web:
+    build: .
+    container_name: django-docker
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app
+    environment:
+      SECRET_KEY: ${DJANGO_SECRET_KEY}
+      DEBUG: ${DEBUG}
+      DJANGO_LOGLEVEL: ${DJANGO_LOGLEVEL}
+      DJANGO_ALLOWED_HOSTS: ${DJANGO_ALLOWED_HOSTS}
+    env_file:
+      - .env
