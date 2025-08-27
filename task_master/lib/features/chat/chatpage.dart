@@ -1,5 +1,4 @@
 import 'package:chatterbox/features/chat/providers/chatSessionProvider.dart';
-import 'package:chatterbox/features/chat/searchBar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'interestsUi.dart';
@@ -15,13 +14,16 @@ class ChatPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-
     final List<ChatMessage> messages = ref.watch(
       chatSessionProvider.select((state) => state.messages),
     );
 
     final bool isActive = ref.watch(
       chatSessionProvider.select((state) => state.isActive),
+    );
+
+    final bool isStartLoading = ref.watch(
+      chatSessionProvider.select((state) => state.isStartLoading),
     );
 
     return Scaffold(
@@ -32,39 +34,55 @@ class ChatPage extends ConsumerWidget {
           Padding(
             padding: const EdgeInsets.all(10.0),
             child:
-            isActive
-                ? ElevatedButton(
-              onPressed:
-                  () => {
-                ref.read(chatSessionProvider.notifier).endChat(),
-              },
-              child: Text('End Chat'),
-            )
-                : ElevatedButton(
-              onPressed:
-                  () => {
-                showInterestsBottomSheet(context, ref),
-              },
-              child: Text('Start Chat'),
-            ),
+                isActive
+                    ? ElevatedButton(
+                      onPressed:
+                          () => {
+                            ref.read(chatSessionProvider.notifier).endChat(),
+                          },
+                      child: Text('End Chat'),
+                    )
+                    : ElevatedButton(
+                      onPressed: () => {showInterestsBottomSheet(context, ref)},
+                      child: Text('Start Chat'),
+                    ),
           ),
         ],
       ),
       body: Column(
         children: <Widget>[
           Expanded(
-            child: ListView.builder(
-              controller: _scrollController,
-              // to scroll to new messages
-              reverse: false,
-              // for bottom up
-              padding: const EdgeInsets.all(8.0),
-              itemCount: messages.length,
-              itemBuilder: (BuildContext context, int index) {
-                final ChatMessage message = messages[index];
-                return buildMessage(context, message.text, message.isMe);
-              },
-            ),
+            child:
+                isStartLoading
+                    ? Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          CircularProgressIndicator(),
+                          SizedBox(height: 16),
+                          Padding(
+                            padding: const EdgeInsets.all(18.0),
+                            child: Text("Looking for a Chatterbox!!"),
+                          ),
+                        ],
+                      ),
+                    )
+                    : ListView.builder(
+                      controller: _scrollController,
+                      // to scroll to new messages
+                      reverse: false,
+                      // for bottom up
+                      padding: const EdgeInsets.all(8.0),
+                      itemCount: messages.length,
+                      itemBuilder: (BuildContext context, int index) {
+                        final ChatMessage message = messages[index];
+                        return buildMessage(
+                          context,
+                          message.text,
+                          message.isMe,
+                        );
+                      },
+                    ),
           ),
           _buildMessageInputBar(context, ref),
         ],
@@ -104,7 +122,8 @@ class ChatPage extends ConsumerWidget {
               controller: _messageController,
               readOnly: !isActive,
               decoration: InputDecoration(
-                hintText: isActive ? 'Type a message...' : 'Start the chat to begin!',
+                hintText:
+                    isActive ? 'Type a message...' : 'Start the chat to begin!',
 
                 filled: true,
                 fillColor: Theme.of(context).scaffoldBackgroundColor,
@@ -131,11 +150,13 @@ class ChatPage extends ConsumerWidget {
             icon: Icon(Icons.send),
             onPressed: isActive ? () => _sendMessage(context, ref) : null,
             disabledColor: Theme.of(context).colorScheme.surfaceDim,
-            color: isActive ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.surfaceDim,
+            color:
+                isActive
+                    ? Theme.of(context).colorScheme.primary
+                    : Theme.of(context).colorScheme.surfaceDim,
           ),
         ],
       ),
     );
   }
-
 }

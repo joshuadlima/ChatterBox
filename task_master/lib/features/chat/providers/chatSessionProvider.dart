@@ -3,7 +3,7 @@ import '../models/chatMessageModel.dart';
 import '../models/chatSessionModel.dart';
 
 class ChatSessionNotifier extends StateNotifier<ChatSessionModel> {
-  ChatSessionNotifier({List<String>? interests}) : super(ChatSessionModel(messages: [], isActive: false, interests: interests));
+  ChatSessionNotifier({List<String>? interests}) : super(ChatSessionModel(messages: [], isActive: false, isStartLoading: false, interests: interests));
 
   void addMessage(String text, bool isMe) {
     final newMessage = ChatMessage(
@@ -29,8 +29,13 @@ class ChatSessionNotifier extends StateNotifier<ChatSessionModel> {
     state = state.copyWith(isActive: false, messages: [], interests: null);
   }
 
-  void startChat(List<String>? interests) {
-    state = state.copyWith(isActive: true, messages: [], interests: interests);
+  Future<void> startChat(List<String>? interests) async {
+    state = state.copyWith(isStartLoading: true);
+
+    // simulate load time
+    await Future.delayed(Duration(milliseconds: 3000));
+
+    state = state.copyWith(isActive: true, isStartLoading: false, messages: [], interests: interests);
   }
 }
 

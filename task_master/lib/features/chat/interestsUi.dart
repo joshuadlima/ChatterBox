@@ -47,7 +47,7 @@ void showInterestsBottomSheet(BuildContext context, WidgetRef ref) {
               style: ElevatedButton.styleFrom(
                 backgroundColor: Theme.of(context).colorScheme.onTertiary,
               ),
-              child: Text('Find Chat'),
+              child: Text('Find Chatterbox'),
               onPressed: () {
                 _submitInterests(context, ref, interestsController.text);
               },
