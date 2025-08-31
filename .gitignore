@@ -1,5 +1,7 @@
 # Django
 **/.env
+**/venv
+**/.venv
 
 # Miscellaneous
 *.class
