@@ -19,5 +19,9 @@ from django.urls import path, include
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('textchat/', include('text_chat_app.urls')),
+    # path('textchat/', include('text_chat_app.urls')),
 ]
+
+# End points
+# wss://api.joshuanoahdlima.info/ws/textchat/  -> WebSocket endpoint for text-chat
+# https://api.joshuanoahdlima.info/admin/  -> Admin panel (useless for now)
