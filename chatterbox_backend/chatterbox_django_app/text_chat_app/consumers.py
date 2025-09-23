@@ -250,14 +250,15 @@ class ChatConsumer(WebsocketConsumer):
             return
 
         async_to_sync(self.channel_layer.group_send)(
-            self.room_name, {"type": "chat.message", "message": (message)}
+            self.room_name,
+            {"type": "chat_message", "message": message, "sender_id": self.user_id},
         )
 
-        self.send(
-            text_data=json.dumps(
-                {"type": "success", "message": "Message sent successfully"}
-            )
-        )
+        # self.send(
+        #     text_data=json.dumps(
+        #         {"type": "success", "message": "Message sent successfully"}
+        #     )
+        # )
 
     def handle_end_chat(self, event=None):
         if self.room_name:
@@ -310,6 +311,11 @@ class ChatConsumer(WebsocketConsumer):
     # Receive message from room group -> Send to Individual users
     def chat_message(self, event):
         message = event["message"]
+        sender_id = event["sender_id"]
+    
+        # Skip if this is our own message
+        if sender_id == self.user_id:
+            return
 
         # Send message to WebSocket
         self.send(text_data=message)
