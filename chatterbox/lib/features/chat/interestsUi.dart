@@ -2,9 +2,16 @@
 import 'package:chatterbox/features/chat/providers/chatSessionProvider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:fluttertoast/fluttertoast.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
-void showInterestsBottomSheet(BuildContext context, WidgetRef ref) {
-  final TextEditingController interestsController = TextEditingController();
+Future<void> showInterestsBottomSheet(BuildContext context) async {
+  final SharedPreferences prefs = await SharedPreferences.getInstance();
+  final List<String>? previousInterests = prefs.getStringList('userInterests');
+  final String initialText = (previousInterests != null && previousInterests.isNotEmpty)
+      ? previousInterests.join(', ') // Join with comma and space for readability
+      : '';
+  final TextEditingController interestsController = TextEditingController(text: initialText);
 
   showModalBottomSheet(
     context: context,
@@ -22,7 +29,7 @@ void showInterestsBottomSheet(BuildContext context, WidgetRef ref) {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: <Widget>[
             Text(
-              'Enter your interests comma separated: ',
+              'Enter your top 5 interests comma separated: ',
               style: Theme.of(context).textTheme.labelLarge,
             ),
             SizedBox(height: 12),
@@ -38,7 +45,7 @@ void showInterestsBottomSheet(BuildContext context, WidgetRef ref) {
               ),
               onSubmitted: (_) {
                 // Allow submitting with keyboard action
-                _submitInterests(context, ref, interestsController.text);
+                _saveInterests(context, interestsController.text, prefs);
               },
             ),
             SizedBox(height: 12),
@@ -47,9 +54,9 @@ void showInterestsBottomSheet(BuildContext context, WidgetRef ref) {
               style: ElevatedButton.styleFrom(
                 backgroundColor: Theme.of(context).colorScheme.onTertiary,
               ),
-              child: Text('Find Chatterbox'),
+              child: Text('Save Interests'),
               onPressed: () {
-                _submitInterests(context, ref, interestsController.text);
+                _saveInterests(context, interestsController.text, prefs);
               },
             ),
             SizedBox(height: 8), // Some padding at the bottom
@@ -60,23 +67,23 @@ void showInterestsBottomSheet(BuildContext context, WidgetRef ref) {
   );
 }
 
-void _submitInterests(BuildContext context, WidgetRef ref, String interestsText) {
+Future<void> _saveInterests(BuildContext context, String interestsText, SharedPreferences prefs) async {
   final interests = interestsText.split(',') // Split by comma
       .map((e) => e.trim())                  // Trim whitespace
       .where((e) => e.isNotEmpty)            // Remove empty strings
       .map((e) => e.toLowerCase())           // Convert to lowercase
       .toList();
 
-  print(interests);
-
   if (interests.isNotEmpty) {
-    // Call your provider method
-    ref.read(chatSessionProvider.notifier).startChat(interests);
-    Navigator.pop(context); // Close the bottom sheet
+    await prefs.setStringList('userInterests', interests.length > 5 ? interests.take(5).toList() : interests);
+    if(context.mounted) {
+      Navigator.pop(context); // Close the bottom sheet
+    }
   } else {
     // Optional: Show a small error/warning if no interests are entered
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Please enter at least one interest.')),
+    Fluttertoast.showToast(
+        msg: "Please enter at least one interest.",
+        toastLength: Toast.LENGTH_SHORT
     );
   }
 }

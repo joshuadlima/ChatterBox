@@ -1,9 +1,9 @@
 import 'package:chatterbox/features/chat/chatpage.dart';
-import 'package:chatterbox/features/home/models/counter.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'initialization.dart';
+import '../chat/interestsUi.dart';
+
 
 class MyHomePage extends StatelessWidget {
   const MyHomePage({super.key, required this.title});
@@ -23,20 +23,32 @@ class MyHomePage extends StatelessWidget {
           children: <Widget>[
             ElevatedButton(
               onPressed: () {
-                Navigator.push(
-                  // Use Navigator.push
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => ChatPage(title: 'Chat with Stranger'),
-                  ), // Construct ChatPage here
-                );
+                showInterestsBottomSheet(context);
               },
-              child: Text('Chat with a stranger!'),
+              child: Text('LOAD INTERESTS'),
             ),
             SizedBox(height: 12.0),
-            ElevatedButton(
-              onPressed: () => ChatPage(),
-              child: Text('Chat with a group!'),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                ElevatedButton(
+                  onPressed: () {
+                    Navigator.push(
+                      // Use Navigator.push
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => ChatPage(title: 'Chat with Stranger'),
+                      ), // Construct ChatPage here
+                    );
+                  },
+                  child: Text('TEXT'),
+                ),
+                SizedBox(width: 12.0),
+                ElevatedButton(
+                  onPressed: () => ChatPage(),
+                  child: Text('VIDEO'),
+                ),
+              ],
             ),
           ],
         ),

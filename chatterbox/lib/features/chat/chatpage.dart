@@ -1,6 +1,8 @@
 import 'package:chatterbox/features/chat/providers/chatSessionProvider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:fluttertoast/fluttertoast.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'interestsUi.dart';
 import 'messageBuilder.dart';
 import 'models/chatMessageModel.dart';
@@ -43,7 +45,9 @@ class ChatPage extends ConsumerWidget {
                       child: Text('End Chat'),
                     )
                     : ElevatedButton(
-                      onPressed: () => {showInterestsBottomSheet(context, ref)},
+                      onPressed: () => {
+                        _submitInterests(context, ref)
+                      },
                       child: Text('Start Chat'),
                     ),
           ),
@@ -100,6 +104,21 @@ class ChatPage extends ConsumerWidget {
     }
 
     _messageController.clear();
+  }
+
+  Future<void> _submitInterests(BuildContext context, WidgetRef ref) async {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    final List<String>? interests = prefs.getStringList('userInterests');
+
+    if (interests!.isNotEmpty) {
+      // Call your provider method
+      ref.read(chatSessionProvider.notifier).startChat(interests);
+    } else {
+      Fluttertoast.showToast(
+          msg: "Please enter at least one interest before starting chat.",
+          toastLength: Toast.LENGTH_SHORT
+      );
+    }
   }
 
   Widget _buildMessageInputBar(BuildContext context, WidgetRef ref) {
