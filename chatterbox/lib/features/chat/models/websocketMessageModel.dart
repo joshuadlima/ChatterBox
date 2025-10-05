@@ -1,5 +1,4 @@
 import 'package:json_annotation/json_annotation.dart';
-
 part 'websocketMessageModel.g.dart';
 // dart run build_runner build
 
