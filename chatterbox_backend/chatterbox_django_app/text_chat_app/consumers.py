@@ -19,7 +19,7 @@ Demo requests:
 1. To submit interests
 {
     "type": "submit_interests",
-    "description": "Submitting interests",
+    "description": "Request to submit interests",
     "timestamp": "2025-10-01T12:00:00",
     "data": { "interests": ["general"] }
 }
@@ -27,21 +27,21 @@ Demo requests:
 2. To start matching
 {
     "type": "start_matching",
-    "description": "Starting matching",
+    "description": "Request to start matching",
     "timestamp": "2025-10-01T12:00:00"
 }
 
 3. To stop matching
 {
     "type": "end_matching",
-    "description": "Ending matching",
+    "description": "Request to end matching",
     "timestamp": "2025-10-01T12:00:00"
 }
 
 4. To chat
 {
     "type": "chat_message",
-    "description": "Sending chat message",
+    "description": "Request to send chat message",
     "timestamp": "2025-10-01T12:00:00",
     "data": { "message": "Hello partner!" }
 }
@@ -49,7 +49,7 @@ Demo requests:
 5. To end chat
 {
     "type": "end_chat",
-    "description": "Ending chat",
+    "description": "Request to end chat",
     "timestamp": "2025-10-01T12:00:00"
 }
 
@@ -264,15 +264,16 @@ class ChatConsumer(WebsocketConsumer):
             self.partner_channel = None
 
             self.send_response(
-                "success",
+                "success" if ending_party == "self"
+                    else "partner_left_chat",
                 (
                     "You have left the chat"
                     if ending_party == "self"
                     else "Your partner has left the chat"
                 ),
             )
-        else:
-            self.send_response("error", "You are not in a chat room")
+        # else:
+        #     self.send_response("error", "You are not in a chat room")
 
     def inter_consumer_communication(self, partner_channel, message):
         async_to_sync(self.channel_layer.send)(partner_channel, message)
@@ -280,7 +281,7 @@ class ChatConsumer(WebsocketConsumer):
     def handle_room_assignment(self, event):
         self.room_name = event["room_name"]
         self.send_response(
-            "success",
+            "success_matched",
             "You have saved current room name",
         )
 
