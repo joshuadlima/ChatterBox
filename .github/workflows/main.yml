@@ -1,0 +1,54 @@
+# references: 
+# https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions
+# https://medium.com/@colonal/automating-flutter-builds-and-releases-with-github-actions-77ccf4a1ccdd
+
+name: "ChatterBox Workflow"
+on: 
+  push:
+    branches: [ "main" ]
+    paths:
+      - "chatterbox/**"
+  pull_request:
+    branches: [ "main" ]
+    paths:
+      - "chatterbox/**"
+
+env:
+  FLUTTER_VERSION: "3.24.3"
+  WORKING_DIRECTORY: "./chatterbox"
+
+jobs:
+  chatterbox-app-build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java JDK
+        uses: actions/setup-java@v4
+        with:
+            distribution: 'zulu'
+            java-version: '17'
+        
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+            flutter-version: ${{ env.FLUTTER_VERSION }}
+            channel: 'stable'
+            cache: true
+
+      - name: Install dependencies
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+        run: flutter pub get
+
+      - name: Build APK
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+        run: flutter build apk --release --split-per-abi
+
+      - name: Upload APK artifacts
+        uses: actions/upload-artifact@v4
+        with:
+            name: android-apk-${{ github.run_number }}
+            path: ${{ env.WORKING_DIRECTORY }}/build/app/outputs/flutter-apk/*.apk
+            retention-days: 30
