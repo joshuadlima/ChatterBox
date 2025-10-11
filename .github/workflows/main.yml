@@ -14,7 +14,7 @@ on:
       - "chatterbox/**"
 
 env:
-  FLUTTER_VERSION: "3.24.3"
+  FLUTTER_VERSION: "3.35.6"
   WORKING_DIRECTORY: "./chatterbox"
 
 jobs:
