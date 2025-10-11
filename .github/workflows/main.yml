@@ -38,6 +38,11 @@ jobs:
             channel: 'stable'
             cache: true
 
+      - name: Create .env file
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+        run: |
+          echo "WEBSOCKET_URL=${{ secrets.WEBSOCKET_URL }}" > .env
+
       - name: Install dependencies
         working-directory: ${{ env.WORKING_DIRECTORY }}
         run: flutter pub get
@@ -45,6 +50,10 @@ jobs:
       - name: Build APK
         working-directory: ${{ env.WORKING_DIRECTORY }}
         run: flutter build apk --release --split-per-abi
+
+      - name: Rename APK
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+        run: mv build/app/outputs/flutter-apk/app-arm64-v8a-release.apk build/app/outputs/flutter-apk/ChatterBox.apk
 
       - name: Upload APK artifacts
         uses: actions/upload-artifact@v4
