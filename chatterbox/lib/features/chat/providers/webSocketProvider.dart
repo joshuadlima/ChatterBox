@@ -7,7 +7,7 @@ import 'package:web_socket_channel/io.dart';
 import '../models/webSocketConnectionStatus.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
-String? _webSocketUrl = dotenv.env['WEBSOCKET_LINK'];
+String? _webSocketUrl = dotenv.env['WEBSOCKET_URL'];
 
 class WebSocketService extends StateNotifier<WebSocketConnectionStatus> {
   String? statusMessage;
