@@ -186,4 +186,3 @@ final webSocketMessagesProvider = StreamProvider.autoDispose<WebsocketMessage>((
   final wsService = ref.watch(webSocketServiceProvider.notifier);
   return wsService.parsedMessages;
 });
-    
