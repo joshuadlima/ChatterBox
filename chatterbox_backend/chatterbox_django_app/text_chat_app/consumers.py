@@ -4,6 +4,7 @@ import json
 import random
 import uuid
 
+from .lua_scripts import lua_script_loader as lscr
 from asgiref.sync import async_to_sync
 from channels.generic.websocket import WebsocketConsumer
 import redis
@@ -65,6 +66,10 @@ class ChatConsumer(WebsocketConsumer):
             self.redis_client = redis.Redis(connection_pool=REDIS_POOL)
             # Test the connection
             self.redis_client.ping()
+            
+            # Load and register the Lua script
+            atomic_match_script = lscr.LuaScriptLoader.load('find_match')
+            self.match_script_sha = self.redis_client.script_load(atomic_match_script)
         except redis.ConnectionError as e:
             logger.error(f"Redis connection failed: {e}")
             self.redis_client = None
@@ -109,22 +114,27 @@ class ChatConsumer(WebsocketConsumer):
 
     # Receive message from WebSocket and handle it based on its type
     def receive(self, text_data):
-        text_data_json = json.loads(text_data)
-        message_type = text_data_json["type"]
-
-        # Handle different message types
-        if message_type == "submit_interests":
-            self.handle_interests(text_data_json["data"].get("interests", []))
-        elif message_type == "start_matching":
-            self.handle_matching()
-        elif message_type == "end_matching":
-            self.stop_handle_matching()
-        elif message_type == "chat_message":
-            self.handle_chat_message(text_data_json["data"].get("message", ""))
-        elif message_type == "end_chat":
-            self.handle_end_chat()
-        else:
-            self.send_response("error", "Invalid message type")
+        try:
+            text_data_json = json.loads(text_data)
+            message_type = text_data_json.get("type")
+            
+            if message_type == "submit_interests":
+                self.handle_interests(text_data_json["data"].get("interests", []))
+            elif message_type == "start_matching":
+                self.handle_matching()
+            elif message_type == "end_matching":
+                self.stop_handle_matching()
+            elif message_type == "chat_message":
+                self.handle_chat_message(text_data_json["data"].get("message", ""))
+            elif message_type == "end_chat":
+                self.handle_end_chat()
+            else:
+                self.send_response("error", f"Invalid message type: {message_type}")
+        except json.JSONDecodeError:
+            self.send_response("error", "Invalid JSON format")
+        except Exception as e:
+            logger.error(f"Error processing message: {e}")
+            self.send_response("error", "An unexpected error occurred.")
 
     def handle_interests(self, interests):
         if not interests or not isinstance(interests, list):
@@ -139,6 +149,10 @@ class ChatConsumer(WebsocketConsumer):
         self.send_response("success", "Interests received, you can start matching")
 
     def add_interests(self):
+        if not self.redis_client:
+            self.send_response("error", "Redis unavailable")
+            return
+        
         # get rid of old interests first
         self.remove_interests()
 
@@ -150,6 +164,10 @@ class ChatConsumer(WebsocketConsumer):
                 self.redis_client.sadd(f"waiting_users:{interest}", self.user_id)
 
     def remove_interests(self):
+        if not self.redis_client:
+            self.send_response("error", "Redis unavailable")
+            return
+
         for interest in self.user_interests:
             if self.redis_client.sismember(f"waiting_users:{interest}", self.user_id):
                 self.redis_client.srem(f"waiting_users:{interest}", self.user_id)
@@ -208,31 +226,96 @@ class ChatConsumer(WebsocketConsumer):
         else:
             self.send_response(
                 "no_match",
-                "No match found, but nothing to fear, we are watching you",
+                "No match found.. but nothing to fear, we are watching you",
             )
 
     def find_match(self):
+        if not self.redis_client:
+            self.send_response("error", "Redis unavailable")
+            return None
+        
+        # Call Lua script atomically
+        try:
+            result = self.redis_client.evalsha(
+                self.match_script_sha,
+                0,  # number of keys (we use ARGV only)
+                self.user_id,
+                self.channel_name,
+                json.dumps(self.user_interests)
+            )
+
+            if result:
+                matched_partner, partner_channel = result
+                
+                if not partner_channel:
+                    self.send_response("no_match", "No match found, still searching")
+                    return
+
+                # Create room and notify both users
+                self.room_name = f"room_{uuid.uuid4().hex[:8]}"
+
+                # Add both users to the same room group
+                async_to_sync(self.channel_layer.group_add)(self.room_name, self.channel_name)
+                async_to_sync(self.channel_layer.group_add)(self.room_name, partner_channel)
+
+                # Notify self
+                self.handle_match_found({
+                    "partner_user_id": matched_partner,
+                    "partner_channel": partner_channel,
+                })
+
+                # Notify partner
+                self.inter_consumer_communication(
+                    partner_channel,
+                    {
+                        "type": "handle_match_found",
+                        "partner_user_id": self.user_id,
+                        "partner_channel": self.channel_name,
+                    },
+                )
+
+                # Share room name with both
+                self.handle_room_assignment({"room_name": self.room_name})
+                self.inter_consumer_communication(
+                    partner_channel,
+                    {"type": "handle_room_assignment", "room_name": self.room_name},
+                )
+            else:
+                self.send_response("no_match", "No match found, still searching")
+
+        except redis.exceptions.NoScriptError:
+            # Script was flushed, reload it
+            atomic_match_script = lscr.LuaScriptLoader.load('find_match')
+            self.match_script_sha = self.redis_client.script_load(atomic_match_script)
+            self.send_response("error", "Please try matching again")
+        except Exception as e:
+            logger.exception(f"Error during matching: {e}")
+            self.send_response("error", "Matching failed, please try again")
         # make user visible for matching
-        self.redis_client.hset(
-            f"user:{self.user_id}", "channel_name", self.channel_name
-        )
+        # self.redis_client.hset(
+        #     f"user:{self.user_id}", "channel_name", self.channel_name
+        # )
 
-        probable_matches = []
-        for interest in self.user_interests:
-            waiting_users = self.redis_client.smembers(f"waiting_users:{interest}")
+        # probable_matches = []
+        # for interest in self.user_interests:
+        #     waiting_users = self.redis_client.smembers(f"waiting_users:{interest}")
 
-            for user in waiting_users:
-                if (
-                    user != self.user_id
-                    and self.redis_client.exists(f"user:{user}")
-                    and user not in probable_matches
-                ):
-                    probable_matches.append(user)
+        #     for user in waiting_users:
+        #         if (
+        #             user != self.user_id
+        #             and self.redis_client.exists(f"user:{user}")
+        #             and user not in probable_matches
+        #         ):
+        #             probable_matches.append(user)
 
-        #  return a random user from the list
-        return random.choice(probable_matches) if probable_matches else None
+        # #  return a random user from the list
+        # return random.choice(probable_matches) if probable_matches else None
 
     def stop_handle_matching(self):
+        if not self.redis_client:
+            self.send_response("error", "Redis unavailable")
+            return
+        
         self.redis_client.delete(f"user:{self.user_id}")
         self.send_response("success", "You have stopped looking for a match.")
 
@@ -276,7 +359,8 @@ class ChatConsumer(WebsocketConsumer):
         #     self.send_response("error", "You are not in a chat room")
 
     def inter_consumer_communication(self, partner_channel, message):
-        async_to_sync(self.channel_layer.send)(partner_channel, message)
+        if partner_channel:
+            async_to_sync(self.channel_layer.send)(partner_channel, message)
 
     def handle_room_assignment(self, event):
         self.room_name = event["room_name"]
