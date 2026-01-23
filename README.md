@@ -28,7 +28,7 @@ To prevent race conditions (e.g., one user matching with multiple people simulta
 ### Running the Back-end Locally
 1.  **Clone the repository:**
     ```bash
-    git clone [https://github.com/yourusername/ChatterBox.git](https://github.com/yourusername/ChatterBox.git)
+    git clone [https://github.com/joshuadlima/ChatterBox.git](https://github.com/joshuadlima/ChatterBox.git)
     cd ChatterBox/chatterbox_backend/chatterbox_django_app
     ```
 2.  **Spin up the environment:**
