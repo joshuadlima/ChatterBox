@@ -1,4 +1,4 @@
-# 💬 ChatterBox
+# ChatterBox
 **An anonymous, interest-based real-time text chat application.**
 
 ChatterBox allows users to instantly connect with strangers based on shared interests. Built with a high-concurrency architecture, it ensures atomic matching and seamless messaging using Django Channels and Redis Lua scripting.
