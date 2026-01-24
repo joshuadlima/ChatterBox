@@ -12,9 +12,25 @@ To prevent race conditions (e.g., one user matching with multiple people simulta
 
 <details>
 <summary>Wanna dive deeper?</summary>
-<br>
-1. Understanding Why Lua
-2. 
+
+  <ol>
+    <li>
+      <strong>Understanding why Lua</strong>
+      <ul>
+        <li>Prevents Race Conditions: The Redis Server executes Lua scripts as a single, uninterruptible command. This ensures that in a matching scenario, a user is either fully matched or stays in the queue, thus it is impossible for a "double match" to occur.</li>
+        <li>Local Python locks only protect one server. Since I've designed it to run with multiple Django workers, Lua provides a global lock at the database level that all workers must respect.</li>
+        <li>Instead of sending several separate commands from Python to Redis, we send one script. This eliminates unnecessary network round-trips.</li>
+      </ul>
+    </li>
+    <li>
+      <strong>Solving the "Thundering Herd" with Asyncio Locks</strong>
+      <ul>
+        <li>When the server starts, multiple concurrent requests might try to load scripts into Redis at the same millisecond.</li>
+        <li>By using an asyncio.Lock, we ensure that only the first request performs the setup, while others wait for the result, preventing redundant processing.</li>
+      </ul>
+    </li>
+  </ol>
+  
 </details>
 
 ### 2. Fully asynchronous
