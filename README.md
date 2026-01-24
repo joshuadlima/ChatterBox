@@ -159,18 +159,8 @@ Sends a message to your currently matched partner.
     "data": { "message": "Hello partner!" }
 }
 ```
-### 5. Chat Message
-Sends a message to your currently matched partner.
-```json
-{
-    "type": "chat_message",
-    "description": "Request to send chat message",
-    "timestamp": "2025-10-01T12:00:00",
-    "data": { "message": "Hello partner!" }
-}
-```
 
-### 6. End Chat
+### 5. End Chat
 Ends the chat with the current partner.
 ```json
 {
