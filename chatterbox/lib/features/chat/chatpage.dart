@@ -1,196 +1,104 @@
-import 'package:chatterbox/features/chat/models/chatSessionModel.dart';
 import 'package:chatterbox/features/chat/providers/chatSessionProvider.dart';
 import 'package:chatterbox/features/chat/providers/webSocketProvider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:fluttertoast/fluttertoast.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'interestsUi.dart';
 import 'messageBuilder.dart';
-import 'models/chatMessageModel.dart';
 import 'models/webSocketConnectionStatus.dart';
 
 class ChatPage extends ConsumerWidget {
-  ChatPage({super.key, this.title = 'ChatterBox!'});
-
+  ChatPage({super.key, this.title = 'chatterbox.'});
   final String title;
   final TextEditingController _messageController = TextEditingController();
-  final ScrollController _scrollController = ScrollController();
+  final purple = const Color(0xFF6200EE);
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        title: Text('ChatterBox!'),
-        actions: [
-          Padding(
-            padding: const EdgeInsets.all(10.0),
-            child: _buildAppBarAction(context, ref),
-          ),
-        ],
+        elevation: 0,
+        backgroundColor: Colors.white,
+        leading: BackButton(color: purple),
+        title: Text("chatterbox.", style: TextStyle(color: purple, fontWeight: FontWeight.w900, letterSpacing: -1)),
+        actions: [_buildHeaderAction(ref)],
       ),
       body: Column(
-        children: <Widget>[
-          Expanded(child: _buildChatScreen(context, ref)),
-          _buildMessageInputBar(context, ref),
+        children: [
+          Expanded(child: _buildChatArea(ref)),
+          _buildInputBar(ref),
         ],
       ),
     );
   }
 
-  Widget _buildAppBarAction(BuildContext context, WidgetRef ref) {
-    final wsStatus = ref.watch(webSocketServiceProvider);
+  Widget _buildHeaderAction(WidgetRef ref) {
+    final status = ref.watch(webSocketServiceProvider);
+    final notifier = ref.read(webSocketServiceProvider.notifier);
 
-    switch (wsStatus) {
-      case WebSocketConnectionStatus.connected:
-        return ElevatedButton(
-          onPressed: () {
-            ref.read(webSocketServiceProvider.notifier).startMatching();
-          },
-          child: Text('Start Chat'),
-        );
+    String label = "CONNECT";
+    VoidCallback? action = () => notifier.connect();
 
-      case WebSocketConnectionStatus.matched:
-        return ElevatedButton(
-          onPressed: () {
-            ref.read(webSocketServiceProvider.notifier).endChat();
-            ref.read(chatSessionProvider.notifier).clearChat();
-          },
-          child: Text('End Chat'),
-        );
+    if (status == WebSocketConnectionStatus.connected) { label = "START"; action = () => notifier.startMatching(); }
+    if (status == WebSocketConnectionStatus.matching) { label = "STOP"; action = () => notifier.stopMatching(); }
+    if (status == WebSocketConnectionStatus.matched) { label = "END"; action = () => notifier.endChat(); }
 
-      case WebSocketConnectionStatus.matching:
-        return ElevatedButton(
-          onPressed: () {
-            ref.read(webSocketServiceProvider.notifier).stopMatching();
-          },
-          child: Text('Stop Matching'),
-        );
-
-      case WebSocketConnectionStatus.connecting:
-        return ElevatedButton(onPressed: null, child: Text('Connecting...'));
-
-      // for disconnected or error
-      default:
-        return ElevatedButton(
-          onPressed: () {
-            ref.read(webSocketServiceProvider.notifier).connect();
-          },
-          child: Text('Connect'),
-        );
-    }
+    return TextButton(
+      onPressed: status == WebSocketConnectionStatus.connecting ? null : action,
+      child: Text(label, style: TextStyle(color: purple, fontWeight: FontWeight.w900, fontSize: 12)),
+    );
   }
 
-  Widget _buildChatScreen(BuildContext context, WidgetRef ref) {
-    final wsStatus = ref.watch(webSocketServiceProvider);
-    final List<ChatMessage> messages = ref.watch(
-      chatSessionProvider.select((state) => state.messages),
-    );
+  Widget _buildChatArea(WidgetRef ref) {
+    final status = ref.watch(webSocketServiceProvider);
+    final messages = ref.watch(chatSessionProvider).messages;
 
-    switch (wsStatus) {
-      case WebSocketConnectionStatus.connecting ||
-          WebSocketConnectionStatus.matching:
-        return Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+    if (status == WebSocketConnectionStatus.matching || status == WebSocketConnectionStatus.connecting) {
+      return Center(
+        child: Text("SEARCHING...", style: TextStyle(color: purple.withOpacity(0.3), fontWeight: FontWeight.w900, letterSpacing: 2)),
+      );
+    }
+
+    return ListView.builder(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+      itemCount: messages.length,
+      itemBuilder: (context, i) => buildMessage(context, messages[i].text, messages[i].messageType),
+    );
+  }
+
+  Widget _buildInputBar(WidgetRef ref) {
+    final isMatched = ref.watch(webSocketServiceProvider) == WebSocketConnectionStatus.matched;
+
+    return Opacity(
+      opacity: isMatched ? 1.0 : 0.2,
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(20, 10, 10, 30), // Extra bottom padding for "Lean" look
+        decoration: BoxDecoration(
+          color: Colors.white,
+          border: Border(top: BorderSide(color: purple.withOpacity(0.1))),
+        ),
+        child: Row(
           children: [
-            CircularProgressIndicator(),
-            SizedBox(height: 16),
-            Padding(
-              padding: const EdgeInsets.all(18.0),
-              child: Text("Loading, Please wait !!"),
+            Expanded(
+              child: TextField(
+                controller: _messageController,
+                enabled: isMatched,
+                decoration: const InputDecoration(hintText: "Write something...", border: InputBorder.none),
+                onSubmitted: (_) => _sendMessage(ref),
+              ),
+            ),
+            IconButton(
+              icon: Icon(Icons.send_rounded, color: purple),
+              onPressed: isMatched ? () => _sendMessage(ref) : null,
             ),
           ],
-        );
-
-      default: // all other cases
-        return ListView.builder(
-          controller: _scrollController,
-          // to scroll to new messages
-          reverse: false,
-          // for bottom up
-          padding: const EdgeInsets.all(8.0),
-          itemCount: messages.length,
-          itemBuilder: (BuildContext context, int index) {
-            final ChatMessage message = messages[index];
-            return buildMessage(context, message.text, message.messageType);
-          },
-        );
-    }
-  }
-
-  Widget _buildMessageInputBar(BuildContext context, WidgetRef ref) {
-    final wsStatus = ref.watch(webSocketServiceProvider);
-
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: 8.0, vertical: 8.0),
-      margin: EdgeInsets.fromLTRB(8, 8, 8, 20),
-      decoration: BoxDecoration(
-        color: Theme.of(context).cardColor, // Or another suitable color
-        boxShadow: [BoxShadow(blurRadius: 5.0, color: Colors.black12)],
-        borderRadius: BorderRadius.circular(16.0),
-      ),
-      child: Row(
-        children: <Widget>[
-          Expanded(
-            child: TextField(
-              controller: _messageController,
-              readOnly: wsStatus != WebSocketConnectionStatus.matched,
-              decoration: InputDecoration(
-                hintText:
-                    wsStatus == WebSocketConnectionStatus.matched
-                        ? 'Type a message...'
-                        : 'Start the chat to begin!',
-
-                filled: true,
-                fillColor: Theme.of(context).scaffoldBackgroundColor,
-                contentPadding: EdgeInsets.symmetric(
-                  horizontal: 8.0,
-                  vertical: 8.0,
-                ),
-
-                // remove border (bottom line)
-                border: InputBorder.none,
-              ),
-
-              // Send on keyboard submit action
-              onSubmitted: (_) => _sendMessage(context, ref),
-              textInputAction: TextInputAction.send,
-
-              // Allow multi-line input
-              minLines: 1,
-              maxLines: 4,
-            ),
-          ),
-
-          IconButton(
-            icon: Icon(Icons.send),
-            onPressed:
-                wsStatus == WebSocketConnectionStatus.matched
-                    ? () => _sendMessage(context, ref)
-                    : null,
-            disabledColor: Theme.of(context).colorScheme.surfaceDim,
-            color:
-                wsStatus == WebSocketConnectionStatus.matched
-                    ? Theme.of(context).colorScheme.primary
-                    : Theme.of(context).colorScheme.surfaceDim,
-          ),
-        ],
+        ),
       ),
     );
   }
 
-  void _sendMessage(BuildContext context, WidgetRef ref) {
-    final messageText = _messageController.text.trim();
-    if (messageText.isNotEmpty) {
-      print('Sending message: $messageText');
-
-      ref
-          .read(chatSessionProvider.notifier)
-          .addMessage(messageText, ChatMessageType.self);
-      buildMessage(context, messageText, ChatMessageType.self);
-    }
-
+  void _sendMessage(WidgetRef ref) {
+    if (_messageController.text.trim().isEmpty) return;
+    ref.read(chatSessionProvider.notifier).addMessage(_messageController.text, ChatMessageType.self);
     _messageController.clear();
   }
 }

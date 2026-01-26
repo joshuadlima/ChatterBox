@@ -22,18 +22,30 @@ class WebsocketMessage {
   Map<String, dynamic> toJson() => _$WebsocketMessageToJson(this);
 }
 
-
 @JsonSerializable(includeIfNull: false)
 class Data {
   final List<String>? interests;
   final String? message;
 
+  // --- For WebRTC ---
+  final String? sdp;
+  final String? type; // 'offer' or 'answer'
+  final String? candidate;
+  final String? sdpMid;
+  final int? sdpMLineIndex;
+  final String? role; // 'caller' or 'callee'
+
   Data({
     this.message,
     this.interests,
+    this.sdp,
+    this.type,
+    this.candidate,
+    this.sdpMid,
+    this.sdpMLineIndex,
+    this.role,
   });
 
   factory Data.fromJson(Map<String, dynamic> json) => _$DataFromJson(json);
-
   Map<String, dynamic> toJson() => _$DataToJson(this);
 }

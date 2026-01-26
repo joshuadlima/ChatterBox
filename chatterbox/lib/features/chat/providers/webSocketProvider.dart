@@ -111,6 +111,28 @@ class WebSocketService extends StateNotifier<WebSocketConnectionStatus> {
     }
   }
 
+  void sendWebRTCSignal(Map<String, dynamic> signalData) {
+    // Use 'webrtc_signal' as the type to match your Django logic
+    final wsMessage = WebsocketMessage(
+      "webrtc_signal",
+      "WebRTC Handshake Data",
+      DateTime.now(),
+      Data(
+        sdp: signalData['sdp'],
+        type: signalData['type'],
+        candidate: signalData['candidate'],
+        sdpMid: signalData['sdpMid'],
+        sdpMLineIndex: signalData['sdpMLineIndex'],
+      ),
+    );
+
+    print("MESSAGE Getting sent is ----> ${wsMessage.toJson().toString()}");
+
+    if (_channel != null) {
+      _channel!.sink.add(jsonEncode(wsMessage.toJson()));
+    }
+  }
+
   void startMatching() {
     WebsocketMessage wsMessage = WebsocketMessage("start_matching", "Request to start matching", DateTime.now(), Data());
     if (state == WebSocketConnectionStatus.connected && _channel != null) {
