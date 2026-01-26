@@ -73,7 +73,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
     async def _load_scripts_globally(self):
         async with ChatConsumer._LOAD_LOCK:
-            if not ChatConsumer._SCRIPT_SHAS: # second check
+            if not ChatConsumer._SCRIPT_SHAS:  # second check
                 # Helper to load scripts into Redis and store SHAs for all consumers to share.
                 scripts = [
                     "find_match",
@@ -83,7 +83,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
                     "clean_up",
                 ]
                 for s in scripts:
-                    content = await lscr.LuaScriptLoader.load(s)
+                    content = lscr.LuaScriptLoader.load(s)
                     ChatConsumer._SCRIPT_SHAS[s] = await self.redis_client.script_load(
                         content
                     )
@@ -162,6 +162,8 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 )
             elif message_type == "end_chat":
                 await self.end_chat()
+            elif message_type == "webrtc_signal":
+                await self.webrtc_signal(text_data_json.get("data", {}))
             else:
                 await self.send_response(
                     "error", f"Invalid message type: {message_type}"
@@ -257,10 +259,20 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 )
 
                 # Share room name with both
-                await self.handle_room_assignment({"room_name": self.room_name})
+                await self.handle_room_assignment(
+                    {
+                        "room_name": self.room_name,
+                        "role": "caller",  # for webRTC communication
+                    }
+                )
+
                 await self.inter_consumer_communication(
                     partner_channel,
-                    {"type": "handle_room_assignment", "room_name": self.room_name},
+                    {
+                        "type": "handle_room_assignment",
+                        "room_name": self.room_name,
+                        "role": "callee",  # for webRTC communication
+                    },
                 )
             else:
                 await self.send_response("no_match", "No match found, still searching")
@@ -349,18 +361,40 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
     async def handle_room_assignment(self, event):
         self.room_name = event["room_name"]
+        role = event.get("role")
         await self.send_response(
-            "success_matched",
-            "You have saved current room name",
+            "success_matched", "You have saved current room name", {"role": role}
         )
 
     async def handle_match_found(self, event):
+        role = event.get("role")
         await self.send_response(
             "success",
             "Match found and partner details saved",
         )
 
-    # Receive message from room group -> Send to Individual users
+    async def webrtc_signal(self, signal_data):
+        if not self.room_name:
+            await self.send_response("error", "You are not in a chat room")
+            return
+
+        await self.channel_layer.group_send(
+            self.room_name,
+            {"type": "signal_relay", "sender_id": self.user_id, "payload": signal_data},
+        )
+
+    # Receive a webRTC signal relay message from room group -> Send to Individual user members (other than sender)
+    async def signal_relay(self, event):
+        # Do not send the signal back to the person who originated it
+        if event["sender_id"] == self.user_id:
+            return
+
+        # Send the WebRTC data to the Flutter app
+        await self.send_response(
+            "webrtc_signal", "Incoming WebRTC signaling data", event["payload"]
+        )
+
+    # Receive a chat message from room group -> Send to Individual user members (other than sender)
     async def chat_message(self, event):
         message = event["message"]
         sender_id = event["sender_id"]
@@ -383,7 +417,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
             "description": description,
             "timestamp": datetime.now().isoformat(),
         }
-        if data:
+        if data is not None: 
             response["data"] = data
 
         await self.send(text_data=json.dumps(response))

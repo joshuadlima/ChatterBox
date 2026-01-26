@@ -1,0 +1,39 @@
+config:
+  target: 'ws://localhost:8000/ws/textchat/'
+  phases:
+      - duration: 60
+        arrivalRate: 5
+        rampTo: 50
+        name: "Sustained Growth"
+  ws:
+    connect_timeout: 30
+    
+scenarios:
+  - name: "Chat Flow Test"
+    weight: 100
+    engine: ws
+    flow:
+      - connect: {}
+      - think: 5
+      - think: 1
+      - send:
+          payload:
+            type: "submit_interests"
+            description: "Submit Interests"
+            timestamp: "2025-10-12T15:30:45.123Z"
+            data:
+              interests: ["general"]
+      - think: 3
+      - send:
+          payload:
+            type: "start_matching"
+      - think: 5
+      - send:
+          payload:
+            type: "chat_message" 
+            data:
+              message: "Hello from Artillery!"
+      - think: 3
+      - send:
+          payload:
+            type: "end_chat"

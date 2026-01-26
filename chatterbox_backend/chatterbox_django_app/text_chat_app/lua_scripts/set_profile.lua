@@ -7,18 +7,12 @@ local user_id = ARGV[1]
 local channel_name = ARGV[2]
 local interests_str = ARGV[3]
 
--- 1. Save user metadata to a Hash
+-- Save user metadata to a Hash
 -- This allows the server to remember the user's "state"
 redis.call('HSET', 'user_meta:' .. user_id, 
     'channel', channel_name, 
     'interests', interests_str,
     'status', 'searching'
 )
-
--- 2. Add user to each interest set
--- This makes them "discoverable" to other searchers
--- for i, interest_set in ipairs(KEYS) do
---     redis.call('SADD', interest_set, user_id)
--- end
 
 return nil
