@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:chatterbox/features/chat/models/websocketMessageModel.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:web_socket_channel/io.dart';
 import '../models/webSocketConnectionStatus.dart';
@@ -71,6 +72,7 @@ class WebSocketService extends StateNotifier<WebSocketConnectionStatus> {
       );
     } catch (e) {
       statusMessage = "WS: Connection failed - $e";
+      Fluttertoast.showToast(msg: "WS Error: ${e.toString()}");
       print("WS: Connection failed - $e");
       state = WebSocketConnectionStatus.error;
       _channel = null; // Ensure channel is null on failure
