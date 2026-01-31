@@ -145,13 +145,13 @@ Makes use of the WebRTC APIs for video and audio calls between 2 browsers/apps. 
 ## Getting Started
 
 ### Prerequisites
-* [Docker](https://www.docker.com/) & Docker Compose
+* Docker & Docker Compose
 * Git
 
 ### Running the Back-end Locally
 1.  **Clone the repository:**
     ```bash
-    git clone [https://github.com/joshuadlima/ChatterBox.git](https://github.com/joshuadlima/ChatterBox.git)
+    git clone https://github.com/joshuadlima/ChatterBox.git
     cd ChatterBox/chatterbox_backend/chatterbox_django_app
     ```
 2.  **Spin up the environment:**
