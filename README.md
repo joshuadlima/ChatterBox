@@ -1,9 +1,15 @@
 # ChatterBox
 **An anonymous, interest-based real-time text and video chat application. (Similar to Omegle)**
 
----
 
-## The chatterbox app
+
+## The chatterbox App
+
+### 1. The landing and edit interests screens (taken as a part of a live demo)
+<img width="1259" height="750" alt="Screenshot 2026-01-31 220058" src="https://github.com/user-attachments/assets/bf62a278-b2e7-422c-af48-22a6d6925dca" />
+
+### 2. The text chat and video chat screens (taken as a part of a live demo)
+<img width="1252" height="746" alt="Screenshot 2026-01-31 220043" src="https://github.com/user-attachments/assets/7c011ca8-7151-462b-94f1-2ecd3fc63a12" />
 
 
 ## Backend Design & Architecture
