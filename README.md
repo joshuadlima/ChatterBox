@@ -43,17 +43,15 @@ To increase efficiency, better IO handling, and optimal memory usage.
     <li>
       <strong>Understanding the CPU</strong>
       <ul>
-        <li>If a CPU has 6 cores, it implies it can run 6 processes in a truly parallel manner (12 in the case of hyperthreading).</li>
-        <li>These cores are then context-switched by threads, and these threads are what are available to our applications for processing our logic.</li>
+        <li>If a CPU has 6 cores, it implies it can run 6 processes/threads in a truly parallel manner.</li>
+        <li>These cores are then context-switched by kernel/OS threads, and these threads are what are available to our applications for processing our logic.</li>
       </ul>
     </li>
     <li>
       <strong>Understanding Python</strong>
       <ul>
-        <li>While Python can create many OS threads, the GIL acts as a bouncer, ensuring only one thread can execute Python bytecode at any given microsecond.</li>
-        <li>The Python interpreter controls this GIL for a given thread.</li>
-        <li>The OS context switches multiple threads for the interpreter to use(pre-emptive switching).</li>
-        <li>This helps different parts of Python logic to get the CPU's attention in a non-biased manner.</li>
+        <li>While Python can make use of multiple OS threads, the GIL acts as a bouncer, ensuring only one thread can execute Python bytecode at any given microsecond.</li>
+        <li>The Python interpreter controls this GIL for a given thread and even though multiple threads might be executing multiple pieces of logic.. it is serialized and thus doesn't achieve true parallelism</li>
       </ul>
     </li>
     <li>
@@ -71,7 +69,7 @@ To increase efficiency, better IO handling, and optimal memory usage.
         <li>The user might just be idle or awaiting some IO or network request, but he will still occupy the thread.</li>
         <li>Say the pool has 40 threads, when the 41st user tries to connect.. he won't be able to until one of the others disconnects.</li>
         <li>Each thread has its own private memory (stack) to store that specific user's progress. This means workers cannot easily finish each other's jobs; a user is 'stuck' with their assigned thread until the task is complete.</li>
-        <li>Another issue is the fact that each thread requires 1MB, and if it isn't being utilized, then this causes a waste of resources for all the threads.</li>
+        <li>Another issue is the fact that each thread requires ~1MB, and if it isn't being utilized, then this causes a waste of resources for all the threads.</li>
       </ul>
     </li>
     <li>
