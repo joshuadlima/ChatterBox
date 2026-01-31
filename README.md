@@ -3,6 +3,9 @@
 
 ---
 
+## The chatterbox app
+
+
 ## Backend Design & Architecture
 
 The backend utilizes an **Asynchronous Event Loop** model, allowing a single server process to handle thousands of concurrent WebSocket connections with a minimal memory footprint.
@@ -11,7 +14,7 @@ The backend utilizes an **Asynchronous Event Loop** model, allowing a single ser
 To prevent race conditions (e.g., one user matching with multiple people simultaneously), the matching logic (and other redis operations that need to be atomic) is offloaded to **Redis Lua Scripts**.
 
 <details>
-<summary>Wanna dive deeper?</summary>
+<summary>Click to dive deeper.</summary>
 
   <ol>
     <li>
@@ -37,7 +40,7 @@ To prevent race conditions (e.g., one user matching with multiple people simulta
 To increase efficiency, better IO handling, and optimal memory usage.
 
 <details>
-<summary>Wanna dive deeper?</summary>
+<summary>Click to dive deeper.</summary>
 
   <ol>
     <li>
@@ -86,6 +89,46 @@ To increase efficiency, better IO handling, and optimal memory usage.
 
 </details>
 
+
+### 3. WebRTC for peer to peer video calls
+Makes use of the WebRTC APIs for video and audio calls between 2 browsers/apps. Our WebSocket backend serves as the means to share the SDP and candidate data between the 2 matched devices.
+
+<details>
+<summary>Click to dive deeper.</summary>
+
+  <ol>
+    <li>
+      <strong>Understanding WebRTC</strong>
+      <ul>
+        <li>WebRTC is a set of js. APIs for establishing a real time communication between 2 browsers/apps</li>
+        <li>The two devices share SDPs and then ICE Candidates over the signalling server. Once this is complete, an optimal route is established for communication and both parties can communicate.</li>
+        <li>In case of devices behind a symmetric NAT, the peer to peer communication can't be established. STUN server won't be sufficient in this case, we need a TURN server to relay the audio and video data. (Currently this project only uses Google's free STUN server)</li>
+        <li>STUN(Session Traversal Utilities for NAT) is a server that provides a client its public IP address and port number, allowing the client to establish a direct connection with other clients.</li>
+        <li>TURN(Traversal Using Relays around NAT) is a server that acts as an intermediary that relays packets of media data from one device to another. Its used if STUN can't be used to establish a peer to peer connection.</li>
+      </ul>
+    </li>
+    <li>
+      <strong>Understanding NAT (Network Address Translation)</strong>
+      <ul>
+        <li>In order to establish a peer to peer communication between 2 devices. Both devices need to have a way to connect or some way to identify the other device on the internet.</li>
+        <li>These devices don't have public IP addresses of their own and so they need to find out with their Router(which has a public IP) how they would be visible to other devices on the internet. (They contact STUN for such info)</li>
+        <li>Full coned NAT - </li>
+      </ul>
+    </li>
+    <li>
+      <strong>Understanding Signalling</strong>
+      <ul>
+        <li>For 2 devices to communicate using WebRTC, the caller and callee need to first exchange some data. This data can be shared by several means. (we use the WebSocket connection to share this info)</li>
+        <li>Firstly an SDP(Session Description Protocol) needs to be exchanged between the caller and callee. The SDP is a format for describing multimedia communication sessions mainly for streaming media.</li>
+        <li>Next each peer would make a call to their STUN server and get a list of ICE candidates that could be used and share this with their partner.</li>
+        <li>Getting this ICE candidate info can be time consuming and so a method called ICE Trickling is used to make a series of calls to STUN and share the info one by one to the peer.</li>
+        <li>Once this exchange happens, an optimal path is discovered and both peers can now communicate directly.</li>
+      </ul>
+    </li>
+</ol>
+
+</details>
+
 ### 3. Data Structures
 * **`user_meta:{user_id}` (Hash):** Stores `{channel_id, interests, status}`.
 * **`interest:{topic}` (Set):** A collection of `user_id`s waiting for a match in a specific category.
@@ -128,7 +171,7 @@ Sets your profile tags. Must be done before matching.
 ```
 
 ### 2. Start Matching
-Finds a partner with overlapping interests.
+Finds a partner with overlapping interests. This also assigns a 'role' on success, this role can either be caller or callee which is used in case of WebRTC communication.
 ```json
 {
     "type": "start_matching",
@@ -147,7 +190,18 @@ Stops looking for a chat partner.
 }
 ```
 
-### 4. Chat Message
+### 4. WebRTC Signaling
+Shares the ICE candidate with the partner for WebRTC.
+```json
+{
+    "type": "webrtc_signal",
+    "description": "Incoming WebRTC signaling data",
+    "timestamp": "2025-10-01T12:00:00",
+    "data: { SDP / ICE Candidate Object }
+}
+```
+
+### 5. Chat Message
 Sends a message to your currently matched partner.
 ```json
 {
@@ -158,7 +212,7 @@ Sends a message to your currently matched partner.
 }
 ```
 
-### 5. End Chat
+### 6. End Chat
 Ends the chat with the current partner.
 ```json
 {
