@@ -197,7 +197,7 @@ Shares the ICE candidate with the partner for WebRTC.
     "type": "webrtc_signal",
     "description": "Incoming WebRTC signaling data",
     "timestamp": "2025-10-01T12:00:00",
-    "data: { SDP / ICE Candidate Object }
+    "data": { SDP / ICE Candidate Object }
 }
 ```
 
