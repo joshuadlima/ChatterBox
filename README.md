@@ -118,7 +118,15 @@ Makes use of the WebRTC APIs for video and audio calls between 2 browsers/apps. 
       <ul>
         <li>In order to establish a peer to peer communication between 2 devices. Both devices need to have a way to connect or some way to identify the other device on the internet.</li>
         <li>These devices don't have public IP addresses of their own and so they need to find out with their Router(which has a public IP) how they would be visible to other devices on the internet. (They contact STUN for such info)</li>
-        <li>Full coned NAT - </li>
+        <li>NAT Translation Methods.
+          <ol>
+            <li>Full cone(One to one) NAT - Packets to the externalIP:Port on the router always maps to the internalIP:Port. No additional checks, once someone has your public assigned IP and port, they can communicate with you.</li>
+            <li>Address restricted NAT - Packets to the externalIP:Port on the router always maps to the internalIP:Port <strong>as long as the source address from the packet matches the table.</strong> A check is done to make sure we have communicated with that IP before.</li>
+            <li>Port restricted NAT - Packets to the externalIP:Port on the router always maps to the internalIP:Port <strong>as long as the source address and port from the packet matches the table.</strong> A check is done to make sure we have communicated with that IP:Port before.</li>
+            <li>Symmetric NAT (The fear of WebRTC) - Packets to the externalIP:Port on the router always maps to the internalIP:Port <strong>as long as the full payer matches the table.</strong> A check is done to make sure the destination IP:Port has communicated with that source IP:Port before.</li>
+          </ol>
+          <li>For Full cone, Address restricted and Port restricted NAT, STUN + ICE Hole punching mostly works fine. In the case of Symmetric, however, we would need a TURN relay.</li>
+        </li>
       </ul>
     </li>
     <li>
