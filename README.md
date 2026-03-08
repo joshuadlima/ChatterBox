@@ -168,7 +168,7 @@ Makes use of the WebRTC APIs for video and audio calls between 2 browsers/apps. 
     docker-compose up
     ```
 3.  **Access the WebSocket:**
-    The backend will be accessible at: `ws://localhost:8000/ws/textchat/`
+    The backend will be accessible at: `ws://localhost:8000/ws/textchat?device_id=<device_id>`
 
 ---
 
