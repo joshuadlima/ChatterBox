@@ -36,7 +36,7 @@ To prevent race conditions (e.g., one user matching with multiple people simulta
       <strong>Solving the "Thundering Herd" with Asyncio Locks</strong>
       <ul>
         <li>When the server starts, multiple concurrent requests might try to load scripts into Redis at the same millisecond.</li>
-        <li>By using an asyncio.Lock, we ensure that only the first request performs the setup, while others wait for the result, preventing redundant processing.</li>
+        <li>By using asyncio.Lock and double-checked locking, we ensure that only the first request performs the setup, while others wait for the result, preventing redundant processing.</li>
       </ul>
     </li>
   </ol>
@@ -236,3 +236,45 @@ Ends the chat with the current partner.
     "timestamp": "2025-10-01T12:00:00"
 }
 ```
+
+## Backend Security
+
+### 1. Rate Limiting
+A Rate Limiter would ideally live on the Gateway. In our case, this isn't sufficient since a WebSocket backend needs rate limiting for both connections and message types.
+
+I've implemented a Token Bucket Rate Limiter using Redis + Lua scripts to safely handle concurrency issues. The Token Bucket algorithm is well-suited, as it enables short bursts of higher frequency messages, which could happen while using a chatting app.
+
+<details>
+<summary>Click to dive deeper.</summary>
+
+  <ol>
+    <li>
+      <strong>The approach</strong>
+      <ul>
+        <li>The app is designed to permit anonymous users. This changes things because we don't have a reliable way to identify and restrict users. Thus, we need to add friction.</li>
+        <li>We would need a multi-tiered approach for Rate Limiting since this is a WebSocket backend.</li>
+        <li>Tier 1 - IP Address Based Rate Limiting on Gateway Level</li>
+        <li>Tier 2 - Client UUID-Based Rate Limiting in Application Code Level</li>
+      </ul>
+    </li>
+    <li>
+      <strong>Tier 1 - IP Address Based Rate Limiting on Gateway Level</strong>
+      <ul>
+        <li>This prevents a potential attacker from spamming connections.</li>
+        <li>This approach, however, can cause the Coffee Shop Problem, where there could be several users under the same network trying to access our app and getting rate-limited for no real fault.</li>
+        <li>Thus, we need to keep a generous limit for this rate limiter so that a group of people under the same network wont been rate limited unnecessarily. However, it should be strict enough for an attacker not to be able to succeed.</li>
+      </ul>
+    </li>
+    <li>
+      <strong>Tier 2 - Client UUID-Based Rate Limiting in Application Code Level</strong>
+      <ul>
+        <li>This prevents a potential attacker from spamming a particular message type. Once a connection is established, the gateway would essentially just forward frames. Some of these message types could trigger heavy operations (like find match).</li>
+        <li>The approach would be to use the UUID sent by the client's device to uniquely identify the client and rate limit accordingly.</li>
+      </ul>
+    </li>
+  </ol>
+  
+</details>
+
+
+
