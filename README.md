@@ -237,7 +237,7 @@ Ends the chat with the current partner.
 }
 ```
 
-## Backend Security
+## Backend Health
 
 ### 1. Rate Limiting
 A Rate Limiter would ideally live on the Gateway. In our case, this isn't sufficient since a WebSocket backend needs rate limiting for both connections and message types.
@@ -275,6 +275,13 @@ I've implemented a Token Bucket Rate Limiter using Redis + Lua scripts to safely
   </ol>
   
 </details>
+
+### 2. Soft and Hard Limits on Message Size
+Sending huge WebSocket messages could quickly eat up RAM (Resource Exhaustion Attack). 
+
+Thus, a Hard Limit(Connection termination) for WebSocket frame size has been added at the server level to 64KB (generous enough to permit the exchange of sometimes bulky (up to 20KB) WebRTC SDP Offers & Answers. A Soft Limit(Error message) of 2000 characters has also been added for chat messages, which is reasonable enough for an anonymous chat app.
+
+### 3. Heartbeat for Zombie Users
 
 
 
