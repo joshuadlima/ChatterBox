@@ -282,9 +282,9 @@ Sending huge WebSocket messages could quickly eat up RAM (Resource Exhaustion At
 Thus, a Hard Limit(Connection termination) for WebSocket frame size has been added at the server level to 64KB (generous enough to permit the exchange of sometimes bulky (up to 20KB) WebRTC SDP Offers & Answers. A Soft Limit(Error message) of 2000 characters has also been added for chat messages, which is reasonable enough for an anonymous chat app.
 
 ### 3. Heartbeat to Prevent Zombie Sockets
-There could be cases where a user abrubtly loses internet connection and the client doesn't have a change to send a close frame to the backend. In these cases the final clean up of this users entires in the redis data store doesn't occur and the user stays there as a Zombie user. This is prevented by adding a Network Level heartbeat which will send the required close frame if the client doesn't respond with a 'Pong' frame.
+There could be cases where a user abruptly loses internet connectivity, and the client doesn't have a chance to send a close frame to the backend. In these cases, the final cleanup of this users entires in the Redis data store doesn't occur, and the user stays there as a Zombie user. This is prevented by adding a Network-Level heartbeat that sends the required close frame if the client doesn't respond with a 'Pong' frame.
 
-A similar heartbeat has been added on the client side to prevent cell towers and load balancers from dropping the connection due to inactivity (the users might be reading messages or thinking but very much active).
+A similar heartbeat has been added on the client side to prevent cell towers and load balancers from dropping the connection due to inactivity (the users might be reading messages or thinking, but are very much active).
 
 
 
