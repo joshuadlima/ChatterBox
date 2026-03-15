@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:chatterbox/features/chat/models/websocketMessageModel.dart';
+import 'package:chatterbox/features/chat/providers/deviceUtilsProvider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -43,9 +44,9 @@ class WebSocketService extends StateNotifier<WebSocketConnectionStatus> {
     }
 
     try {
-      // authentication, passing herders -> future scope
-
-      _channel = IOWebSocketChannel.connect(Uri.parse(_webSocketUrl!));
+      // authentication, passing headers -> future scope
+      var deviceID = deviceIdProvider;
+      _channel = IOWebSocketChannel.connect(Uri.parse("${_webSocketUrl!}?id=$deviceID"));
       await _channel!.ready; // Wait for the connection to be established
 
       state = WebSocketConnectionStatus.connected;
