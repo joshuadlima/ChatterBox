@@ -31,6 +31,7 @@ ALLOWED_HOSTS = os.environ.get("DJANGO_ALLOWED_HOSTS","127.0.0.1").split(",")
 # Application definition
 
 INSTALLED_APPS = [
+    'core',
     'text_chat_app',
     'rest_framework',
     'django.contrib.admin',
@@ -69,7 +70,6 @@ TEMPLATES = [
     },
 ]
 
-# WSGI_APPLICATION = 'chatterbox_django_app.wsgi.application'
 ASGI_APPLICATION = "chatterbox_django_app.asgi.application"
 
 # Database
@@ -91,6 +91,11 @@ CHANNEL_LAYERS = {
         },
     },
 }
+
+REDIS_HOST = os.getenv("REDIS_HOST", "redis")
+REDIS_PORT = 6379
+REDIS_POOL_SIZE = 20 
+REDIS_POOL_TIMEOUT = 30
 
 # Password validation
 # https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators

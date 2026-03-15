@@ -23,5 +23,5 @@ urlpatterns = [
 ]
 
 # End points
-# wss://api.joshuanoahdlima.info/ws/textchat/  -> WebSocket endpoint for text-chat
+# wss://api.joshuanoahdlima.info/ws/textchat?id=<sha256_hashed_device_id>  -> WebSocket endpoint for text-chat
 # https://api.joshuanoahdlima.info/admin/  -> Admin panel (useless for now)

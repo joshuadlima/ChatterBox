@@ -1,18 +1,18 @@
+from urllib.parse import parse_qs
+
 from channels.generic.websocket import AsyncWebsocketConsumer
-from .lua_scripts import lua_script_loader as lscr
+from core.decorators import websocket_rate_limit
+from core.utils import lua_script_loader as lscr
 import redis.asyncio as redis
 from datetime import datetime
+from core.redis_client import get_redis_client
 import asyncio
 import logging
 import json
 import uuid
+import re
 
 logger = logging.getLogger(__name__)
-
-# Redis connection pool to be used for all users (module level)
-REDIS_POOL = redis.ConnectionPool(
-    host="redis", port=6379, db=1, decode_responses=True, max_connections=50
-)
 
 """
 Demo requests:
@@ -39,7 +39,15 @@ Demo requests:
     "timestamp": "2025-10-01T12:00:00"
 }
 
-4. To chat
+4. To send WebRTC signaling data
+{
+    "type": "webrtc_signal",
+    "description": "Incoming WebRTC signaling data",
+    "timestamp": "2025-10-01T12:00:00",
+    "data: { SDP / ICE Candidate Object }
+}
+
+5. To chat
 {
     "type": "chat_message",
     "description": "Request to send chat message",
@@ -47,7 +55,7 @@ Demo requests:
     "data": { "message": "Hello partner!" }
 }
 
-5. To end chat
+6. To end chat
 {
     "type": "end_chat",
     "description": "Request to end chat",
@@ -68,7 +76,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
         super().__init__(*args, **kwargs)
 
         self.redis_client = None
-        self.user_id = None
+        self.user_id = None # used for rate limiting and identifying the user
         self.room_name = None
 
     async def _load_scripts_globally(self):
@@ -83,7 +91,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
                     "clean_up",
                 ]
                 for s in scripts:
-                    content = lscr.LuaScriptLoader.load(s)
+                    content = lscr.LuaScriptLoader.load("text_chat_app", s)
                     ChatConsumer._SCRIPT_SHAS[s] = await self.redis_client.script_load(
                         content
                     )
@@ -101,10 +109,32 @@ class ChatConsumer(AsyncWebsocketConsumer):
             return await self.redis_client.evalsha(
                 self._SCRIPT_SHAS[script_name], numkeys, *args
             )
+            
+    async def is_valid_device_hash(self, val: str) -> bool:
+        """
+        Validates that the string is exactly a 64-character hex string (SHA-256).
+        """
+        return bool(re.match(r'^[a-fA-F0-9]{64}$', str(val)))
 
     async def connect(self):
-        self.user_id = str(uuid.uuid4())
-        self.redis_client = redis.Redis(connection_pool=REDIS_POOL)
+        # Check if id is provided in query params
+        query_string = self.scope['query_string'].decode('utf-8')
+        parsed_qs = parse_qs(query_string) # parse it into a dictionary
+        id_list = parsed_qs.get('id') # get the list of id values
+        
+        if not id_list or not id_list[0]:
+            # 4000 is a standard custom WebSocket close code
+            await self.close(code=4000) 
+            return
+            
+        if not await self.is_valid_device_hash(id_list[0]):
+            await self.close(code=4001) # 4001 for invalid id format
+            return
+        else:
+            self.user_id = id_list[0]
+        
+        # Accept the connection
+        self.redis_client = await get_redis_client()  # Get a Redis client instance from the common pool
 
         if not ChatConsumer._SCRIPT_SHAS:
             await self._load_scripts_globally()
@@ -194,6 +224,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
             logger.exception(f"Error during matching: {e}")
             await self.send_response("error", "Matching failed, please try again")
 
+    @websocket_rate_limit(limit=3, period=4) # 3skips in 4sec
     async def find_match(self):
         if not self.redis_client:
             await self.send_response("error", "Redis unavailable")
@@ -306,9 +337,14 @@ class ChatConsumer(AsyncWebsocketConsumer):
             logger.exception(f"Error during matching: {e}")
             await self.send_response("error", "Operation failed, please try again")
 
+    @websocket_rate_limit(limit=5, period=10) # 5msgs in 10sec
     async def handle_chat_message(self, message):
         if not self.room_name:
             await self.send_response("error", "You are not in a chat room")
+            return
+        
+        if len(message) > 2000: # Arbitrary max length to prevent abuse
+            await self.send_response("error", "Message too long. (max 2000 characters)")
             return
 
         await self.channel_layer.group_send(

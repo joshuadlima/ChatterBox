@@ -49,4 +49,5 @@ USER appuser
 EXPOSE 8000
 
 # Start the application using Uvicorn + hot reload
-CMD ["uvicorn", "chatterbox_django_app.asgi:application", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+CMD ["uvicorn", "chatterbox_django_app.asgi:application", "--host", "0.0.0.0", "--port", "8000", "--workers", "4", "--ws", "websockets", "--ws-max-size", "65536"]
+# CMD ["uvicorn", "chatterbox_django_app.asgi:application", "--host", "0.0.0.0", "--port", "8000", "--reload"]
