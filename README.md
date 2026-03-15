@@ -237,7 +237,7 @@ Ends the chat with the current partner.
 }
 ```
 
-## Backend Security
+## Backend Health
 
 ### 1. Rate Limiting
 A Rate Limiter would ideally live on the Gateway. In our case, this isn't sufficient since a WebSocket backend needs rate limiting for both connections and message types.
