@@ -168,7 +168,7 @@ Makes use of the WebRTC APIs for video and audio calls between 2 browsers/apps. 
     docker-compose up
     ```
 3.  **Access the WebSocket:**
-    The backend will be accessible at: `ws://localhost:8000/ws/textchat?device_id=<device_id>`
+    The backend will be accessible at: `ws://localhost:8000/ws/textchat?id=<sha256_hashed_device_id>`
 
 ---
 
@@ -281,7 +281,11 @@ Sending huge WebSocket messages could quickly eat up RAM (Resource Exhaustion At
 
 Thus, a Hard Limit(Connection termination) for WebSocket frame size has been added at the server level to 64KB (generous enough to permit the exchange of sometimes bulky (up to 20KB) WebRTC SDP Offers & Answers. A Soft Limit(Error message) of 2000 characters has also been added for chat messages, which is reasonable enough for an anonymous chat app.
 
-### 3. Heartbeat for Zombie Users
+### 3. Heartbeat to Prevent Zombie Sockets
+There could be cases where a user abrubtly loses internet connection and the client doesn't have a change to send a close frame to the backend. In these cases the final clean up of this users entires in the redis data store doesn't occur and the user stays there as a Zombie user. This is prevented by adding a Network Level heartbeat which will send the required close frame if the client doesn't respond with a 'Pong' frame.
+
+A similar heartbeat has been added on the client side to prevent cell towers and load balancers from dropping the connection due to inactivity (the users might be reading messages or thinking but very much active).
+
 
 
 
