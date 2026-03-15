@@ -38,7 +38,7 @@ class DeviceUtils {
 
     await prefs.setString(_deviceIdKey, hashedDeviceId);
 
-    return deviceId;
+    return hashedDeviceId;
   }
 }
 

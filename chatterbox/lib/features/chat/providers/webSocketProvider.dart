@@ -12,6 +12,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 String? _webSocketUrl = dotenv.env['WEBSOCKET_URL'];
 
 class WebSocketService extends StateNotifier<WebSocketConnectionStatus> {
+  final Ref _ref;
   String? statusMessage;
   IOWebSocketChannel? _channel;
   StreamSubscription? _channelSubscription;
@@ -23,7 +24,7 @@ class WebSocketService extends StateNotifier<WebSocketConnectionStatus> {
   // Change the return type of the public stream getter
   Stream<WebsocketMessage> get parsedMessages => _parsedMessagesController.stream;
 
-  WebSocketService() : super(WebSocketConnectionStatus.disconnected);
+  WebSocketService(this._ref) : super(WebSocketConnectionStatus.disconnected);
 
   Future<void> connect() async {
     if (state == WebSocketConnectionStatus.connected || state == WebSocketConnectionStatus.connecting) {
@@ -45,8 +46,8 @@ class WebSocketService extends StateNotifier<WebSocketConnectionStatus> {
 
     try {
       // authentication, passing headers -> future scope
-      var deviceID = deviceIdProvider;
-      _channel = IOWebSocketChannel.connect(Uri.parse("${_webSocketUrl!}?id=$deviceID"));
+      final String deviceID = await _ref.read(deviceIdProvider.future);
+      _channel = IOWebSocketChannel.connect(Uri.parse("${_webSocketUrl!}?id=$deviceID"), pingInterval: const Duration(seconds: 15),);
       await _channel!.ready; // Wait for the connection to be established
 
       state = WebSocketConnectionStatus.connected;
@@ -202,7 +203,7 @@ class WebSocketService extends StateNotifier<WebSocketConnectionStatus> {
 }
 
 final webSocketServiceProvider = StateNotifierProvider.autoDispose<WebSocketService, WebSocketConnectionStatus>((ref) {
-  final service = WebSocketService();
+  final service = WebSocketService(ref);
   return service;
 });
 
