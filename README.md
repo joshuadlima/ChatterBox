@@ -254,7 +254,7 @@ I've implemented a Token Bucket Rate Limiter using Redis + Lua scripts to safely
         <li>The app is designed to permit anonymous users. This changes things because we don't have a reliable way to identify and restrict users. Thus, we need to add friction.</li>
         <li>We would need a multi-tiered approach for Rate Limiting since this is a WebSocket backend.</li>
         <li>Tier 1 - IP Address Based Rate Limiting on Gateway Level</li>
-        <li>Tier 2 - Client UUID-Based Rate Limiting in Application Code Level</li>
+        <li>Tier 2 - Client ID-Based Rate Limiting in Application Code Level</li>
       </ul>
     </li>
     <li>
@@ -266,10 +266,10 @@ I've implemented a Token Bucket Rate Limiter using Redis + Lua scripts to safely
       </ul>
     </li>
     <li>
-      <strong>Tier 2 - Client UUID-Based Rate Limiting in Application Code Level</strong>
+      <strong>Tier 2 - Client ID-Based Rate Limiting in Application Code Level</strong>
       <ul>
         <li>This prevents a potential attacker from spamming a particular message type. Once a connection is established, the gateway would essentially just forward frames. Some of these message types could trigger heavy operations (like find match).</li>
-        <li>The approach would be to use the UUID sent by the client's device to uniquely identify the client and rate limit accordingly.</li>
+        <li>The approach would be to use the ID sent by the client's device to uniquely identify the client and rate limit accordingly.</li>
       </ul>
     </li>
   </ol>
