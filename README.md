@@ -292,7 +292,7 @@ I used K6 to run a load test of 50 concurrent connections on a single-node local
 <details>
 <summary>Click to view run results.</summary>
 
-```json
+```bash
 
          /\      Grafana   /‾‾/  
     /\  /  \     |\  __   /  /   
