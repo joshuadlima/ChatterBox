@@ -1,6 +1,7 @@
 from urllib.parse import parse_qs
-
+from uvicorn.protocols.utils import ClientDisconnected
 from channels.generic.websocket import AsyncWebsocketConsumer
+from websockets import ConnectionClosedError, ConnectionClosedOK
 from core.decorators import websocket_rate_limit
 from core.utils import lua_script_loader as lscr
 import redis.asyncio as redis
@@ -168,7 +169,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 await self.channel_layer.group_discard(
                     self.room_name, self.channel_name
                 )
-
+                
         except Exception as e:
             logger.exception(f"Error during cleanup: {e}")
         finally:
@@ -346,7 +347,6 @@ class ChatConsumer(AsyncWebsocketConsumer):
         if len(message) > 2000: # Arbitrary max length to prevent abuse
             await self.send_response("error", "Message too long. (max 2000 characters)")
             return
-
         await self.channel_layer.group_send(
             self.room_name,
             {"type": "chat_message", "message": message, "sender_id": self.user_id},
@@ -378,6 +378,8 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 "You have ended the chat",
             )
 
+        except (ClientDisconnected, ConnectionClosedError, ConnectionClosedOK) as e:
+            pass
         except Exception as e:
             logger.exception(f"Error during ending chat: {e}")
             await self.send_response("error", "Operation failed, please try again")
@@ -455,5 +457,15 @@ class ChatConsumer(AsyncWebsocketConsumer):
         }
         if data is not None: 
             response["data"] = data
-
-        await self.send(text_data=json.dumps(response))
+            
+        try:
+            await self.send(text_data=json.dumps(response))
+        except (ClientDisconnected, ConnectionClosedError, ConnectionClosedOK):
+            pass
+        except RuntimeError as e:
+            if "websocket.send" in str(e) and "websocket.close" in str(e):
+                pass  # socket already closed, silenced
+            else:
+                logger.exception(f"Unexpected RuntimeError in send_response: {e}")
+        except Exception as e:
+            logger.exception(f"Error sending response: {e}")
