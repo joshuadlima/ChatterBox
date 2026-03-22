@@ -286,6 +286,62 @@ There could be cases where a user abruptly loses internet connectivity, and the 
 
 A similar heartbeat has been added on the client side to prevent cell towers and load balancers from dropping the connection due to inactivity (the users might be reading messages or thinking, but are very much active).
 
+### 4. Load Testing and Benchmarking
+I used K6 to run a load test of 50 concurrent connections on a single-node local Docker setup (4 uvicorn workers). It sustained 10.5 complete chat sessions/sec at p95 connection latency of 12.44ms and ~482KB memory overhead per connection, across 2,265 sessions with 0 failures. 
+
+<details>
+<summary>Click to view run results.</summary>
+
+```json
+
+         /\      Grafana   /‾‾/  
+    /\  /  \     |\  __   /  /   
+   /  \/    \    | |/ /  /   ‾‾\ 
+  /          \   |   (  |  (‾)  |
+ / __________ \  |_|\_\  \_____/ 
+
+
+     execution: local
+        script: load-test-k6.js
+        output: -
+
+     scenarios: (100.00%) 2 scenarios, 50 max VUs, 4m1s max duration (incl. graceful stop):
+              * user_a: Up to 25 looping VUs for 3m30s over 3 stages (gracefulRampDown: 30s, exec: userA, gracefulStop: 30s)
+              * user_b: Up to 25 looping VUs for 3m30s over 3 stages (gracefulRampDown: 30s, exec: userB, startTime: 1s, gracefulStop: 30s)
+
+
+
+  █ TOTAL RESULTS
+
+    EXECUTION
+    iteration_duration....: avg=3.51s  min=3.5s   med=3.5s   max=3.61s    p(90)=3.51s   p(95)=3.51s
+    iterations............: 2265   10.56026/s
+    vus...................: 5      min=0      max=50
+    vus_max...............: 50     min=50     max=50
+
+    NETWORK
+    data_received.........: 1.2 MB 5.6 kB/s
+    data_sent.............: 2.3 MB 11 kB/s
+
+    WEBSOCKET
+    ws_connecting.........: avg=7.78ms min=4.42ms med=6.79ms max=116.62ms p(90)=10.57ms p(95)=12.44ms
+    ws_msgs_received......: 4530   21.12052/s
+    ws_msgs_sent..........: 13590  63.36156/s
+    ws_session_duration...: avg=3.51s  min=3.5s   med=3.5s   max=3.61s    p(90)=3.51s   p(95)=3.51s
+    ws_sessions...........: 2265   10.56026/s
+
+
+
+                                                                                                                                                                                    
+running (3m34.5s), 00/50 VUs, 2265 complete and 0 interrupted iterations                                                                                                            
+user_a ✓ [======================================] 00/25 VUs  3m30s                                                                                                                  
+user_b ✓ [======================================] 00/25 VUs  3m30s       
+```
+
+
+  
+</details>
+
 
 
 
