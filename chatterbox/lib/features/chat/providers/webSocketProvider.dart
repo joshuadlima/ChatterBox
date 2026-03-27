@@ -207,6 +207,7 @@ final webSocketServiceProvider = StateNotifierProvider.autoDispose<WebSocketServ
   return service;
 });
 
+
 // A provider to easily access the parsed messages stream
 final webSocketMessagesProvider = StreamProvider.autoDispose<WebsocketMessage>((ref) {
   final wsService = ref.watch(webSocketServiceProvider.notifier);
