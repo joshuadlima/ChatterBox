@@ -295,8 +295,8 @@ The bottleneck was discovered to be the CPU, which reached 90% usage, degrading 
 
 <details>
 <summary>Click to view run results.</summary>
+  
 ```text
-
          /\      Grafana   /‾‾/  
     /\  /  \     |\  __   /  /   
    /  \/    \    | |/ /  /   ‾‾\ 
@@ -335,9 +335,9 @@ The bottleneck was discovered to be the CPU, which reached 90% usage, degrading 
 
 running (3m37.3s), 00/50 VUs, 2103 complete and 0 interrupted iterations
 user_a ✓ [======================================] 00/25 VUs  3m30s
-user_b ✓ [======================================] 00/25 VUs  3m30s     
-
+user_b ✓ [======================================] 00/25 VUs  3m30s
 ```
+
 </details>
 
 
