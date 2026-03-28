@@ -291,7 +291,7 @@ I deployed the Django Backend (4 workers) and Redis Server on a DigitalOcean dro
 
 I used K6 to run a load test of 50 concurrent connections. It sustained 9.5 complete chat sessions/sec at p95 connection latency of 327ms and ~92KB memory overhead per connection((peak load - idle) / 50), across 2103 sessions with 0 failures. 
 
-The bottleneck was discovered to be the CPU, which reached 90% usage, degrading the connection latency to 4.5s when I simulated 400 concurrent connections. The fix for this is horizontal scaling (more machines, which my architecture supports) or vertical scaling (more cores).
+At 400 concurrent connections, CPU reached 90% and connection latency degraded to p95 4.5s, though the server continued to operate with 0 failures. The CPU is the identified bottleneck at this scale. The fix for this is horizontal scaling (more machines, which my architecture supports) or vertical scaling (more cores).
 
 <details>
 <summary>Click to view run results.</summary>
