@@ -287,12 +287,16 @@ There could be cases where a user abruptly loses internet connectivity, and the 
 A similar heartbeat has been added on the client side to prevent cell towers and load balancers from dropping the connection due to inactivity (the users might be reading messages or thinking, but are very much active).
 
 ### 4. Load Testing and Benchmarking
-I used K6 to run a load test of 50 concurrent connections on a single-node local Docker setup (4 uvicorn workers). It sustained 10.5 complete chat sessions/sec at p95 connection latency of 12.44ms and ~482KB memory overhead per connection, across 2,265 sessions with 0 failures. 
+I deployed the Django Backend (4 workers) and Redis Server on a DigitalOcean droplet (1CPU, 2GB RAM, 50GB Disk).
+
+I used K6 to run a load test of 50 concurrent connections. It sustained 9.5 complete chat sessions/sec at p95 connection latency of 327ms and ~92KB memory overhead per connection((peak load - idle) / 50), across 2103 sessions with 0 failures. 
+
+The bottleneck was discovered to be the CPU, which reached 90% usage, degrading the connection latency to 4.5s when I simulated 400 concurrent connections. The fix for this is horizontal scaling (more machines, which my architecture supports) or vertical scaling (more cores).
 
 <details>
 <summary>Click to view run results.</summary>
-
 ```text
+
          /\      Grafana   /‾‾/  
     /\  /  \     |\  __   /  /   
    /  \/    \    | |/ /  /   ‾‾\ 
@@ -301,44 +305,39 @@ I used K6 to run a load test of 50 concurrent connections on a single-node local
 
 
      execution: local
-        script: load-test-k6.js
+        script: .\load-test-k6.js
         output: -
 
      scenarios: (100.00%) 2 scenarios, 50 max VUs, 4m1s max duration (incl. graceful stop):
-              * user_a: Up to 25 looping VUs for 3m30s over 3 stages (gracefulRampDown: 30s, exec: userA, gracefulStop: 30s)
-              * user_b: Up to 25 looping VUs for 3m30s over 3 stages (gracefulRampDown: 30s, exec: userB, startTime: 1s, gracefulStop: 30s)
-
 
 
   █ TOTAL RESULTS
 
     EXECUTION
-    iteration_duration....: avg=3.51s  min=3.5s   med=3.5s   max=3.61s    p(90)=3.51s   p(95)=3.51s
-    iterations............: 2265   10.56026/s
-    vus...................: 5      min=0      max=50
-    vus_max...............: 50     min=50     max=50
+    iteration_duration....: avg=3.78s    min=3.6s     med=3.67s    max=14.1s  p(90)=3.78s    p(95)=3.83s
+    iterations............: 2103   9.677939/s
+    vus...................: 1      min=0       max=50
+    vus_max...............: 50     min=50      max=50
 
     NETWORK
-    data_received.........: 1.2 MB 5.6 kB/s
-    data_sent.............: 2.3 MB 11 kB/s
+    data_received.........: 1.1 MB 5.2 kB/s
+    data_sent.............: 2.2 MB 10 kB/s
 
     WEBSOCKET
-    ws_connecting.........: avg=7.78ms min=4.42ms med=6.79ms max=116.62ms p(90)=10.57ms p(95)=12.44ms
-    ws_msgs_received......: 4530   21.12052/s
-    ws_msgs_sent..........: 13590  63.36156/s
-    ws_session_duration...: avg=3.51s  min=3.5s   med=3.5s   max=3.61s    p(90)=3.51s   p(95)=3.51s
-    ws_sessions...........: 2265   10.56026/s
+    ws_connecting.........: avg=279.94ms min=102.29ms med=172.84ms max=10.59s p(90)=282.72ms p(95)=327.93ms
+    ws_msgs_received......: 4204   19.346675/s
+    ws_msgs_sent..........: 12612  58.040025/s
+    ws_session_duration...: avg=3.78s    min=3.6s     med=3.67s    max=14.1s  p(90)=3.78s    p(95)=3.83s
+    ws_sessions...........: 2103   9.677939/s
 
 
 
-                                                                                                                                                                                    
-running (3m34.5s), 00/50 VUs, 2265 complete and 0 interrupted iterations                                                                                                            
-user_a ✓ [======================================] 00/25 VUs  3m30s                                                                                                                  
-user_b ✓ [======================================] 00/25 VUs  3m30s       
+
+running (3m37.3s), 00/50 VUs, 2103 complete and 0 interrupted iterations
+user_a ✓ [======================================] 00/25 VUs  3m30s
+user_b ✓ [======================================] 00/25 VUs  3m30s     
+
 ```
-
-
-  
 </details>
 
 
