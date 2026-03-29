@@ -4,7 +4,7 @@
 
 
 ## The Chatterbox App
-The Chatterbox app is built using Flutter and Riverpod for state management. 
+The Chatterbox app is built using Flutter and Riverpod for state management. Watch the live demo video [![here](https://img.youtube.com/vi/t3GyR3w8R3U/maxresdefault.jpg)](https://www.youtube.com/watch?v=t3GyR3w8R3U)
 
 ### 1. The landing and edit interests screens (taken as a part of a live demo)
 <img width="1259" height="750" alt="Screenshot 2026-01-31 220058" src="https://github.com/user-attachments/assets/bf62a278-b2e7-422c-af48-22a6d6925dca" />
