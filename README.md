@@ -1,5 +1,6 @@
 # ChatterBox
-**An anonymous, interest-based real-time text and video chat application. (Similar to Omegle)**
+**An anonymous, interest-based real-time text and video chat application (Similar to Omegle).**
+
 [Watch the demo on YouTube](https://www.youtube.com/watch?v=t3GyR3w8R3U)
 
 
